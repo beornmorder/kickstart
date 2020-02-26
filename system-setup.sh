@@ -1,9 +1,19 @@
 #!/bin/bash
 
+#initialize packages to be installed.
+packages=""
+
 ###CHECK FOR ROOT###
 if [[ $EUID -ne 0 ]]; then
    echo "This script must be run as root"
    exit 1
+fi
+
+###TYPORA###
+if [ ! -f /usr/bin/typora ]; then
+  wget -qO - https://typora.io/linux/public-key.asc | sudo apt-key add -
+  add-apt-repository 'deb https://typora.io/linux ./'
+  packages="typora " $packages
 fi
 
 ###SPOTIFY###
@@ -12,25 +22,21 @@ if [ -f /usr/bin/spotify ]; then
 else
 	curl -sS https://download.spotify.com/debian/pubkey.gpg | sudo apt-key add -
 	echo "deb http://repository.spotify.com stable non-free" | sudo tee /etc/apt/sources.list.d/spotify.list
-	if [ -f /usr/bin/spotify ]; then
-		echo "spotify installed successfully."
-	else
-		echo "error installing spotify"
-	fi
 fi
+
+###Y-PPA-MANAGER###
+if [ ! -f /usr/bin/y-ppa-manager ]; then
+	add-apt-repository -y ppa:webupd8team/y-ppa-manager
+  packages="y-ppa-manager " $packages
+fi
+
 
 ###TIMESHIFT###
 if [ -f /usr/bin/timeshift ]; then
 	echo "timeshift already installed."
 else
 	add-apt-repository -y ppa:teejee2008/timeshift
-	apt-get update -y
-	apt-get install -y timeshift
-	if [ -f /usr/bin/timeshift ]; then
-		echo "timeshift installed successfully."
-	else
-		echo "error installing timeshift."
-	fi
+	packages="timeshift " $packages
 fi
 
 ###CHROME###
@@ -38,13 +44,7 @@ if [ -f /usr/bin/google-chrome ]; then
 		echo "chrome already installed"
 	else
 		wget -q -O - https://dl.google.com/linux/linux_signing_key.pub | apt-key add -
-		apt-get update -y
-		apt-get install -y google-chrome-stable
-		if [ -f /usr/bin/google-chrome ]; then
-			echo "chrome installed successfully"
-		else
-			echo "error installing chrome"
-		fi
+		packages="google-chrome-stable " $packages
 fi
 
 ###MEDIA-HUMAN###
@@ -53,19 +53,12 @@ if [ -f /opt/youtube-to-mp3/YouTubeToMP3  ]; then
 else
 	add-apt-repository https://www.mediahuman.com/packages/ubuntu
 	apt-key adv --keyserver pgp.mit.edu --recv-keys 7D19F1F3
-	apt-get update -y
-	apt-get install -y youtube-to-mp3
-	if [ -f /opt/youtube-to-mp3/YouTubeToMP3 ]; then
-		echo "media human installed successfully"
-	else
-		echo "error installing media human"
-	fi
+  packages="youtube-to-mp3 " $packages
 fi
 
-packages=""
-
+### packages in Ubuntu repository
 if [ ! -f /usr/bin/wget ]; then
-	packages="wget "
+	packages="wget " $packages
 fi
 
 if [ ! -f /usr/bin/curl ]; then
@@ -169,6 +162,7 @@ if [ ! -f /usr/sbin/arp-scan ]; then
 fi
 
 if [ "${#packages}" -gt "2" ];then
+  echo "The following packages are going to be installed::::    " $packages
 	apt-get install -y $packages
 else
 	echo "no new packages to install"
@@ -188,6 +182,9 @@ fi
 machine_name=$(cat /etc/hostname)
 if [ "$machine_name" = "alfavametraxis" ]; then
 	echo "hostname already set to alfavametraxis"
-else
+elif [`dmidecode | grep -A3 '^System Information' | grep Convertible | awk {'print $7'` = "11m-ad1xx"}]; then
 	echo "alfavametraxis" > /etc/hostname
+else
+  echo ``dmidecode | grep -A3 '^System Information' | grep Convertible | awk {'print $7'`` > /etc/hostname
+  echo ``dmidecode | grep -A3 '^System Information' | grep Convertible | awk {'print $7'`` "written as hostname"
 fi
